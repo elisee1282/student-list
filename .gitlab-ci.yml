@@ -30,6 +30,7 @@ stages:
   - Push D_Hub
   - Deploy App
 
+
 docker build:
   stage: Build image
   script:
@@ -51,8 +52,6 @@ docker test:
 
 docker push:
   stage: Push D_Hub
-  only:
-  - main
   script:
   - docker load < student-list-api.tar
   - docker tag student-list-api $DOCKER_USERNAME/student-list-api:${CI_COMMIT_REF_NAME}
@@ -62,6 +61,7 @@ docker push:
   - docker push $DOCKER_USERNAME/student-list-api:${CI_COMMIT_REF_NAME}
   - docker push $DOCKER_USERNAME/student-list-api:${CI_COMMIT_SHORT_SHA}
   - docker push $DOCKER_USERNAME/student-list-api:latest
+
 
 
 docker deploy:
