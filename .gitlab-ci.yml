@@ -27,7 +27,7 @@ services:
 stages:
   - Build image
   - Test image
-  - Push to Docker Hub
+  - Push D_Hub
   - Deploy App
 
 docker build:
@@ -50,7 +50,7 @@ docker test:
   
 
 docker push:
-  stage: Push to Docker Hub
+  stage: Push D_Hub
   only:
   - main
   script:
