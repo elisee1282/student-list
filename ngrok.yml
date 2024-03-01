@@ -1,0 +1,9 @@
+version: 2
+authtoken: 2cxEY781ZvLFd1Nen35b776qCUE_65m8kqDLjAdNVJQKdoYgq
+tunnels:
+  http:
+    proto: http
+    addr: 80
+  ssh:
+    proto: tcp
+    addr: 22

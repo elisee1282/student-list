@@ -1,0 +1,21 @@
+# Open ssh and http port for ngrok
+cat ngrok.yml
+version: 2
+authtoken: [YOUR_AUTH_TOKEN]
+tunnels:
+  http:
+    proto: http
+    addr: 80
+  ssh:
+    proto: tcp
+    addr: 22
+
+ngrok start --config ngrok.yml --all
+
+# Create variable
+in project devsecops -> settings -> CI/CD -> Variables
+DOCKER_USERNAME and DOCKER_PASSWORD for docker push
+NGROK_SSH_URL,NGROK_HTTP_URL, SSH_LOGIN and SSH_PASSWORD
+
+Pay attention to docker-compose file - image name need to have your own dockerhub ID (we will automate it later)
+
