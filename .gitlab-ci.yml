@@ -163,8 +163,6 @@ apache scan:
 
 
 
-
-
 docker push:
   stage: Push To Docker Hub
   only:
