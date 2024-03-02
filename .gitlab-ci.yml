@@ -24,11 +24,50 @@ services:
   - docker rm -vf student-list-website || echo "website container already deleted"
   - docker rm -vf student-list-api || echo "api container already deleted"
   
+
+.precommit_template: &precommit
+  image: python:3.8-bullseye
+  before_script:
+  - pip3 install pre-commit==3.3.3
+  - apt install -y git
+
+
 stages:
+
+  - Lint code app
+  - Lint code infra
   - Build image
   - Test image
-  - Push D_Hub
+  - Scan Secret App
+  - Scan Infra App
+  - Push To Docker Hub
   - Deploy App
+
+
+.php lint:
+  stage: Lint code app
+  <<: *precommit
+  script:
+  - apt update && apt install -y software-properties-common ca-certificates lsb-release apt-transport-https && echo "deb https://packages.sury.org/php/ $(lsb_release -sc) main" > /etc/apt/sources.list.d/php.list && wget -qO - https://packages.sury.org/php/apt.gpg | apt-key add - && apt update
+  - apt install php8.2 -y 
+  - pre-commit run php-lint-all
+
+
+python lint:
+  stage: Lint code app
+  image: python
+  before_script:
+  - pip install flake8
+  script:
+  - flake8 simple_api/student_age.py --ignore=E501
+
+
+docker lint:
+  stage: Lint code infra
+  image: hadolint/hadolint:2.9.2-debian
+  script:
+    - hadolint --failure-threshold error simple_api/Dockerfile
+
 
 
 docker build:
@@ -50,8 +89,84 @@ docker test:
   - if [ "$(curl -u toto:python -X GET http://$backend:5000/pozos/api/v1.0/get_student_ages | python3 -c "import sys, json; print(json.load(sys.stdin)['student_ages']['bob'])")" = "13" ] && [ "$(curl -u toto:python -X GET http://$backend:5000/pozos/api/v1.0/get_student_ages | python3 -c "import sys, json; print(json.load(sys.stdin)['student_ages']['alice'])")" = "12" ]; then echo "test OK"; exit 0; else echo "test KO"; exit 1; fi
   
 
+.checkov_pod: 
+  stage: Security
+  image: python:3 
+  before_script: 
+    - pip3 install checkov==2.2.180 
+  script: 
+    - checkov --file exemple-pod.yaml 
+  allow_failure: false
+
+secret scan:
+  stage: Scan Secret App
+  image: golang:latest
+  before_script:
+    - git clone https://github.com/trufflesecurity/trufflehog.git
+    - cd trufflehog
+    - go install
+  script:
+    - trufflehog git $CI_REPOSITORY_URL --since-commit HEAD --only-verified --fail
+
+  
+apache scan:
+  stage: Scan Infra App
+  <<: *run
+  script:
+  - git clone  https://github.com/sullo/nikto
+  - cd nikto/program
+  - git checkout nikto-2.5.0
+  - ./nikto.pl -h http://${frontend} -nointeractive -o ../../frontend-apache-report.xml || echo "scan completed"
+  artifacts:
+    paths:
+      - frontend-apache-report.xml
+
+
+.python sca:
+  stage: Scan App
+  <<: *precommit
+  script:
+  - git ls-files -- simple_api/requirements.txt | xargs pre-commit run python-safety-dependencies-check --files
+
+.python sast:
+  stage: Scan App
+  <<: *precommit
+  script:
+    - git ls-files -- simple_api/student_age.py | xargs pre-commit run bandit --files
+
+.docker scan:
+  stage: Scan App
+  variables:
+    image: student-list-api
+  only:
+  - main
+  before_script:
+  - export TRIVY_VERSION=$(wget -qO - "https://api.github.com/repos/aquasecurity/trivy/releases/latest" | grep '"tag_name":' | sed -E 's/.*"v([^"]+)".*/\1/')
+  - echo $TRIVY_VERSION
+  - wget --no-verbose https://github.com/aquasecurity/trivy/releases/download/v${TRIVY_VERSION}/trivy_${TRIVY_VERSION}_Linux-64bit.tar.gz -O - | tar -zxvf -
+  script:
+  - docker load < student-list-api.tar
+  # Build report
+  - ./trivy image --exit-code 0 --cache-dir .trivycache/ --no-progress --format template --template "@contrib/junit.tpl" -o gl-container-scanning-report.xml $image
+  # Print report
+  - ./trivy image --exit-code 0 --cache-dir .trivycache/ --no-progress --severity HIGH $image
+  # Fail on severe vulnerabilities
+  #- echo -e "CVE-2023-30861\nCVE-2023-25577\nCVE-2022-29361" > .trivyignore
+  - ./trivy image --exit-code 1 --cache-dir .trivycache/ --vuln-type library --severity CRITICAL --no-progress $image
+  cache:
+    paths:
+      - .trivycache/
+  artifacts:
+    reports:
+      junit:
+        - gl-container-scanning-report.xml
+
+
+
+
+
 docker push:
-  stage: Push D_Hub
+  stage: Push To Docker Hub
   only:
   - main
   script:
@@ -83,3 +198,17 @@ docker deploy:
   - sshpass -p "$SSH_PASSWORD" ssh -o 'StrictHostKeyChecking=no' -p $SSH_PORT $SSH_LOGIN@$SSH_HOST '(cd ~/prod; docker compose down -v && docker compose pull && docker compose up -d)'
   - sleep 10
   - curl "$NGROK_HTTP_URL" | tac | tac | grep -q "Student Checking App"
+
+
+dast:
+  image: owasp/zap2docker-stable
+  stage: Deploy App
+  needs: ["docker deploy"]
+  variables:
+    website: $NGROK_HTTP_URL
+  script:
+  - mkdir /zap/wrk/
+  - /zap/zap-full-scan.py -J gl-dast-report.json -t $website || true
+  - cp /zap/wrk/gl-dast-report.json .
+  artifacts:
+    paths: [gl-dast-report.json]
