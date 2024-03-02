@@ -113,7 +113,7 @@ apache scan:
   stage: Scan Infra App
   <<: *run
   script:
-  - git clone  https://github.com/sullo/nikto
+  - git clone  https://github.com/sullo/nikto.git
   - cd nikto/program
   - git checkout nikto-2.5.0
   - ./nikto.pl -h http://${frontend} -nointeractive -o ../../frontend-apache-report.xml || echo "scan completed"
