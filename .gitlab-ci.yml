@@ -52,6 +52,8 @@ docker test:
 
 .docker push:
   stage: Push D_Hub
+  only:
+  - main
   script:
   - docker load < student-list-api.tar
   - docker tag student-list-api $DOCKER_USERNAME/student-list-api:${CI_COMMIT_REF_NAME}
