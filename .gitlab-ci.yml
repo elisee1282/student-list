@@ -113,8 +113,8 @@ apache scan:
   stage: Scan Infra App
   <<: *run
   script:
-  - sudo apt install git
-  - sleep 5
+  - apt install -y git 
+  - sleep 10
   - git clone  https://github.com/sullo/nikto.git
   - cd nikto/program
   - git checkout nikto-2.5.0
