@@ -9,7 +9,7 @@ services:
 
 .run_template: &run
   before_script:
-  - apk add --update curl python3 git && rm -rf /var/cahe/apk/*
+  - apk add --update curl python3 git apt net-tools && rm -rf /var/cahe/apk/*
   - docker load < student-list-api.tar
   - docker rm -vf student-list-website || echo "website container already deleted"
   - docker rm -vf student-list-api || echo "api container already deleted"
@@ -113,8 +113,7 @@ apache scan:
   stage: Scan Infra App
   <<: *run
   script:
-  - apt install -y git 
-  - sleep 10
+  - sleep 5
   - git clone  https://github.com/sullo/nikto.git
   - cd nikto/program
   - git checkout nikto-2.5.0
