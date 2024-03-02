@@ -50,7 +50,7 @@ docker test:
   - if [ "$(curl -u toto:python -X GET http://$backend:5000/pozos/api/v1.0/get_student_ages | python3 -c "import sys, json; print(json.load(sys.stdin)['student_ages']['bob'])")" = "13" ] && [ "$(curl -u toto:python -X GET http://$backend:5000/pozos/api/v1.0/get_student_ages | python3 -c "import sys, json; print(json.load(sys.stdin)['student_ages']['alice'])")" = "12" ]; then echo "test OK"; exit 0; else echo "test KO"; exit 1; fi
   
 
-docker push:
+.docker push:
   stage: Push D_Hub
   script:
   - docker load < student-list-api.tar
@@ -64,7 +64,7 @@ docker push:
 
 
 
-docker deploy:
+.docker deploy:
   stage: Deploy App
   environment:
     name: prod
