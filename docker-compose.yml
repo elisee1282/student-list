@@ -9,13 +9,13 @@ services:
     volumes:
       - ./website:/var/www/html
     environment:
-      - USERNAME=toto
-      - PASSWORD=python
+      - USERNAME=${USERNAME}
+      - PASSWORD=${PASSWORD}
     networks:
       - api-pozos
 
   api-pozos:
-    image: ebj288510/student-list-api:latest
+    image: IMAGE=${IMAGE_NAME}
     volumes:
       - ./simple_api/student_age.json:/data/student_age.json
     networks:
