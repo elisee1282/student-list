@@ -15,7 +15,7 @@ services:
       - api-pozos
 
   api-pozos:
-    image: IMAGE=${IMAGE_NAME}
+    image: image=${IMAGE_NAME}
     volumes:
       - ./simple_api/student_age.json:/data/student_age.json
     networks:
