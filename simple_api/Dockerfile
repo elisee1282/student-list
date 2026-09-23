@@ -1,4 +1,4 @@
-FROM python:3.8-buster
+FROM python:3.11-bookworm
 LABEL maintainer="EAZYTraining" email="eazytrainingfr@gmail.com"
 RUN apt update -y && apt install python3-dev libsasl2-dev libldap2-dev libssl-dev -y 
 COPY requirements.txt student_age.py /
