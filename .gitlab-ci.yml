@@ -26,7 +26,7 @@ services:
   
 
 .precommit_template: &precommit
-  image: python:3.8-bullseye
+  image: python:3.11-bookworm
   before_script:
   - pip3 install pre-commit==3.3.3
   - apt install -y git
